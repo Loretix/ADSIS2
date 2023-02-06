@@ -1,1 +1,91 @@
+df da el contenido de la particion y eso da los metadatos (organizacion del sistema de ficheros) el du es lo segundo -s sa todo lo que esta en todos los directorios y ficheros en nuestro sistema de ficheros -sh dara todo a nivel de ficheros y directorios pero no metadatos como df
+
+ps aux, ve los procesos de usuario con mas detalle
+
+top, procesos en tiempo real (htop)
+
+lsof, si esta abierto un fichero en lectura o escritura no te ermite desmontarlo, con lsof te dice cual es ese fichero abierto
+
+comandods, awk, grep, awc, cat, echar vistacillo a las diapos eb moodle
+xargs, ka salida o entrada estandar lo usa como salida estandar y hay muchos parametrs que permiten coger eso por enrada estandar ??????, el xargs se permite modificar ese limite.
+
+tr, transformacion
+tee, para guardar lo que sae por salida estandar
+
+
+du -sh .??*, saca todos los ficheros ocultos
+
+
+fe80 direcion ip6 local
+
+COPIAS DE SEGURIDAD:
+scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.qcow2 .
+scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.xml .
+PASOS:
+
+CONFIGURACION IMAGEN BASE:
+1. copiar los ficheros de configuracion y renombrarlos en mi directorio personal
+    cp /misc/usuarios/unai/vms/o.qcow2 /misc/alumnos/as2/as22022/a796598/oB.qcow2
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oB.xml
+2. Asignarles permiso rw para grupo
+    chmod g+w oB.qcow2
+    chmod g+w oB.xml
+3. Modificamos el fichero oB.xml:
+    - Campo mac address 52:54:00:0B:11:01
+    - Campo name oB
+    - Campo uuid, cambiar últimas 5 cifras con 11110(W,1,1,Z)
+    - Campo source /misc/alumnos/as2/as22022/a796598/oB.qcow2
+4. Definimos la imegen del sistema (cada vez que se edita el
+   fichero oB.xml hay que volver a ejecutar ese comando)
+    virsh -c qemu:///system define oB.xml
+   Y arrancar el virt-manager (previamente instalado) conectandonos con la ip de la máquina a la que nos conectamos (ej. 155.210.154.196) con nuestro usuario (a796598)
+5. Iniciar sesión en la maquina (user: root, password: lojusto2), eliminar configuracion IP
+    ifconfig vio0 -inet
+   Y modificar fichero /etc/hostname.vio0 para activar tarjeta de red mediante "up"
+
+    OPCIÓN 1:
+        OpenBSD (up): echo 'inet6 autoconf' > /etc/hostname.vio0
+    OPCIÓN 2 (he usado esta pero creo que va con las dos):
+        up
+        inet6 eui64
+    Supongo que lo que se pretende es que a partir de la direccion MAC que se ha especificado en el fichero de configuracion de la máquina virtual oB.xml 52:54:00:0b:11:01, se autoconfigure la direccion ipv6 a partir de esa dir MAC.
+
+    Con sh /etc/netstart se actualiza la configuración.
+
+    Para comprobar la dirección ipv6 de link-local que se le ha asignado hacer:
+        ifconfig, ya vemos que se le ha asignado la ip6 fe80::5054:ff:fe0b:1101%vio0
+
+    Podemos comprobar que se puede hacer ping6 a la direccio link-local de la interfaz br1, ya que hemos indicado que nos conectabamos a esta en el fichero de autoconfiguracion.
+        ping6 fe80::6e58:b50a:166a:22e1
+6. Crear cuenta de usuario a796598 y la añadimos al grupo wheel.
+    Crear usuario:
+        useradd -m a796598 (-m para crar directorio home al usuario)
+    Añadir usuario a un grupo:
+        usermod -a -G wheel a796598 (si no va quitas el -a)
+   * Comprobar que se ha realizado bien haciendo "cat /etc/passwd" y mirando que pertenece al grupo con "groups a796598"
+   Configurar doas para que los miembros del grupo wheel tengan permisos de root sin contraseña.
+     vi /etc/doas.conf, añadir archivo y editarlo con:
+        permit nopass keepenv :wheel
+        permit nopass keepenv root as root
+
+    Consultar pagina: https://forums.freebsd.org/threads/doas-sudo-alternative.69219/
+7. Cambiamos de usuario 'su a796598' y copiamos la key_pub de los host del lab al fichero ".ssh/authorized_keys" de esta VM.
+
+    Utilizar direccion link-local ipv6 en la VM y en la interfaz "br1" de centos:
+
+    LA @LINK-LOCAL CAMBIA DEPENDIENDO DE LA MÁQUINA, CUIDADO :)
+        scp -6 a796598@[fe80::6e58:b50a:166a:22e1%vio0]:/home/a796598/.ssh/id_rsa.pub .ssh/authorized_keys
+
+    Para conectarse desde lab o desde central a la  mv base :
+        ssh -6 a796598@fe80::5054:ff:fe0b:1101%br1
+
+    Desde el lab y central va el ping6 con la @unicast y @link-local
+8. Parar la máquina: shutdown, y cuando os indica que ya ha parado, forzar su parada completa desde el menu de virt-manager.
+
+Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la
+máquina física:
+    virsh -c qemu:///system undefine oB.xml
+
+CREACIÓN Y CONFIGURACIÓN BÁSICA DE UN ROUTER IPV6:
+CREACIÓ DE OTRA MÁQUINA VM DE PRUEBA PARA RED INTERIOR:
 
