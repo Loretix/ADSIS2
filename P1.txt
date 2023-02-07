@@ -21,6 +21,7 @@ fe80 direcion ip6 local
 COPIAS DE SEGURIDAD:
 scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.qcow2 .
 scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.xml .
+CONTRASEÑA: L9oreto108
 PASOS:
 
 CONFIGURACION IMAGEN BASE:
@@ -42,13 +43,8 @@ CONFIGURACION IMAGEN BASE:
 5. Iniciar sesión en la maquina (user: root, password: lojusto2), eliminar configuracion IP
     ifconfig vio0 -inet
    Y modificar fichero /etc/hostname.vio0 para activar tarjeta de red mediante "up"
-
-    OPCIÓN 1:
-        OpenBSD (up): echo 'inet6 autoconf' > /etc/hostname.vio0
-    OPCIÓN 2 (he usado esta pero creo que va con las dos):
         up
         inet6 eui64
-    Supongo que lo que se pretende es que a partir de la direccion MAC que se ha especificado en el fichero de configuracion de la máquina virtual oB.xml 52:54:00:0b:11:01, se autoconfigure la direccion ipv6 a partir de esa dir MAC.
 
     Con sh /etc/netstart se actualiza la configuración.
 
@@ -74,17 +70,16 @@ CONFIGURACION IMAGEN BASE:
     Utilizar direccion link-local ipv6 en la VM y en la interfaz "br1" de centos:
 
     LA @LINK-LOCAL CAMBIA DEPENDIENDO DE LA MÁQUINA, CUIDADO :)
-        scp -6 a796598@[fe80::6e58:b50a:166a:22e1%vio0]:/home/a796598/.ssh/id_rsa.pub .ssh/authorized_keys
+
+        scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[fe80::5054:ff:fe0b:1101%br1]:/home/a796598/.ssh/authorized_keys"
 
     Para conectarse desde lab o desde central a la  mv base :
         ssh -6 a796598@fe80::5054:ff:fe0b:1101%br1
 
-    Desde el lab y central va el ping6 con la @unicast y @link-local
 8. Parar la máquina: shutdown, y cuando os indica que ya ha parado, forzar su parada completa desde el menu de virt-manager.
 
-Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la
-máquina física:
-    virsh -c qemu:///system undefine oB.xml
+Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la máquina física:
+    virsh -c qemu:///system undefine oB
 
 CREACIÓN Y CONFIGURACIÓN BÁSICA DE UN ROUTER IPV6:
 CREACIÓ DE OTRA MÁQUINA VM DE PRUEBA PARA RED INTERIOR:
