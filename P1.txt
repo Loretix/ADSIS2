@@ -82,5 +82,80 @@ Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la m
     virsh -c qemu:///system undefine oB
 
 CREACIÓN Y CONFIGURACIÓN BÁSICA DE UN ROUTER IPV6:
-CREACIÓ DE OTRA MÁQUINA VM DE PRUEBA PARA RED INTERIOR:
+
+1. Crear una imagen diferencial con imagen base o.qcow2, y de nombre orouterB.qcow2, según el método explicitado en el anexo A.
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 orouterB.qcow2
+    ** Quiterle permisos de escritura a la imagen base oB.qcow2
+    RECORDAR QUE LE HE QUITADO PERMISO DE ESCRITURA A OB.QCOW2
+2. Copiar el fichero o.xml a orouterB.xml, y modificar:
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/orouterB.xml
+    - source: /misc/alumnos/as2/as22022/a796598/orouterB.qcow2
+    - name: orouterB
+Verificar que el fichero orouterW.qcow2 tenga como grupo propietario "vmu" y permisos de grupo "rw", con ls -l
+    chmod g+w orouterB.xml
+3. Modificar orouterB.xml con:
+    - mac address: 52:54:00:W:XY:01 -  52:54:00:0b:ff:01
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff1(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
+4. Definir la máquina en libvirt con :
+    virsh -c qemu+ssh://a796598@155.210.154.201/system define orouterB.xml
+5. Modificar el fichero /etc/hostname.vio0, cofiguración estática:
+    - Eliminar configuracion actual: ifconfig vio0 -inet
+    - echo 'inet6 alias 2001:470:736b:f000::1b1 64' > /etc/hostname.vio0
+   Modificar el fichero /etc/mygate para que incluya el encaminador por defecto (este es el router central):
+    - Añadir: 2001:470:736b:F000::1 (@ip6 publica de central para encaminar por ahi)
+Con "sh /etc/netstart" mira lo que hay en los archivos y configura automaticamente
+
+Comprobar que funciona con:
+    Desde el lab: ping6 2001:470:736b:f000::1b1 (se puede hacer ping al router)
+    Desde central: ping6 2001:470:736b:f000::1b1 (se puede hacer ping al router)
+    Desde el router:  ping6 2001:470:736b:f000::1 (se puede hacer ping a central)
+
+6. Copiar fichero /etc/hostname.vio0 a otro con nombre /etc/hostname.vlan1199:
+    - cp /etc/hostname.vio0 /etc/hostname.vlan1199
+    - Modificar /etc/hostname.vlan1199 con:
+        inet6 2001:470:736b:bff::1 64 vlan 1199 vlandev vio0 -temporary
+Añadir temporary en el hostname.vio0 y .vlan1199 y a partir de aqui en todos añadir -temporary
+
+7.  Para activar encaminamiento ip6 y no contestación a anuncios de prefijo ip6, modificar:
+    vi /etc/sysctl.conf
+    - Añadir: net.inet6.ip6.forwarding=1
+8. Poner en marchaservicio rad: rcctl enable rad
+Adicionalmente, indicar la tarjeta, en la que se anuncia la información de prefijo y encaminador por defecto, en el fichero "/etc/rad.conf" con la nueva línea "interface <vuestro_interface>".
+    vi /etc/rad.conf
+    - Añadir: interface vlan1199
+¿Que hace? ¿Para qué sirve? ¿Por qué lo he configurado asi?
+Hay que indicar la interfaz vlan1199 porque es la que se conecta con la máquina virtual, y es la interfaz en la que queremos que actue el servicio rad.
+Rad es un demonio de anuncio de enrutador IPv6. Envía periódicamente mensajes de anuncio de enrutador IPv6 con información de prefijo y enrutador predeterminado. Clientes como slaacd(8) los utilizan para configurar direcciones IPv6 en interfaces de red y establecer rutas predeterminadas. Además, escucha los mensajes de solicitud de enrutador IPv6 y responde con anuncios de enrutador.
+ ES COMO EL RIPD.
+ El protocolo RIP se encarga de calcular las tablas de encaminamiento de cada router sin conocer previamente la topología
+
+9. Modificar el nombre de la máquina:
+    vi /etc/myname
+    - Añadir: orouterB
+10. Rearrancar la VM con "shutdown -r now".
+11. Comprobar ssh a796598@2001:470:736b:f000::1b1 y grupo wheel verificado con comando "id"
+
+CREACIÓN DE OTRA MÁQUINA VM DE PRUEBA PARA RED INTERIOR:
+
+13. Efectuar otra imagen diferencial nueva sobre la misma base (oB.qcow2)
+para una nueva VM de nombre "oWXYZ" (con Z=2).
+    cd /misc/alumnos/as2/as22022/a796598
+    - Creamos imagen diferencial: qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF2.qcow2
+    - Copiamos .xml: cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF2.xml
+    Modificar en el oBFF2.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF2.qcow2
+    - name: oBFF2
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:02
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff2(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
+14. Definir la máquina:
+    virsh -c qemu+ssh://a796598@155.210.154.201/system define oBFF2.xml
+15. Editar /etc/hostname.vio0 para que contenga solo las líneas (solo lo activamos, pero que no coja configuración automática de IPv6) :
+    -inet6
+    up
+    -soii -temporary (paso 17)
+16. Crear fichero /etc/hostname.vlan1199 con el contenido (en este si que tiene que tomar la IPv6 automática):
+    vlan 1199 vlandev vio0 up
+    inet6 autoconf
+
+    Con sh /etc/netstart se actualiza la configuración.
 
