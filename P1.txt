@@ -125,9 +125,7 @@ Adicionalmente, indicar la tarjeta, en la que se anuncia la información de pref
     - Añadir: interface vlan1199
 ¿Que hace? ¿Para qué sirve? ¿Por qué lo he configurado asi?
 Hay que indicar la interfaz vlan1199 porque es la que se conecta con la máquina virtual, y es la interfaz en la que queremos que actue el servicio rad.
-Rad es un demonio de anuncio de enrutador IPv6. Envía periódicamente mensajes de anuncio de enrutador IPv6 con información de prefijo y enrutador predeterminado. Clientes como slaacd(8) los utilizan para configurar direcciones IPv6 en interfaces de red y establecer rutas predeterminadas. Además, escucha los mensajes de solicitud de enrutador IPv6 y responde con anuncios de enrutador.
- ES COMO EL RIPD.
- El protocolo RIP se encarga de calcular las tablas de encaminamiento de cada router sin conocer previamente la topología
+Rad es un demonio de anuncio de enrutador IPv6. Envía periódicamente mensajes de anuncio de enrutador (router advertusement) IPv6 con información de su prefijo y enrutador predeterminado. Clientes como slaacd(8) los utilizan para configurar direcciones IPv6 en interfaces de red y establecer rutas predeterminadas. Además, escucha los mensajes router solicitation de IPv6 y responde con router advertisement.
 
 9. Modificar el nombre de la máquina:
     vi /etc/myname
@@ -150,12 +148,49 @@ para una nueva VM de nombre "oWXYZ" (con Z=2).
 14. Definir la máquina:
     virsh -c qemu+ssh://a796598@155.210.154.201/system define oBFF2.xml
 15. Editar /etc/hostname.vio0 para que contenga solo las líneas (solo lo activamos, pero que no coja configuración automática de IPv6) :
-    -inet6
     up
-    -soii -temporary (paso 17)
+    inet6 -soii
+    inet6 -temporary (paso 17)
 16. Crear fichero /etc/hostname.vlan1199 con el contenido (en este si que tiene que tomar la IPv6 automática):
     vlan 1199 vlandev vio0 up
-    inet6 autoconf
+    inet6 autoconf -soii -temporary (paso 17)
 
     Con sh /etc/netstart se actualiza la configuración.
+
+18. Poner el nombre DNS que corresponde a esta VM en /etc/myname.
+ Nombre libvirt y DNS de VMS : <ident SO>WXYZ
+***** ident SO = o (OpenBSD), u (ubuntu), c (centos) =>  oBFF2
+
+19. Habilitar el servicio "slaacd" mediante "rcctl". ¿ Para qué es necesario ?
+rcctl enable slaacd
+
+Es un demonio de configuracion automatica de direcciones para clientes, se encarga de escuchar los mensajes de anuncio del router (router advertisement), en nuestro caso enviados por el servicio rad (lanzado en el router). Consiste en que el cliente se autoconfigure con la informacion que tiene y y la anunciada por los routers.
+El procedimiento es el siguiente:
+- Router Solicitation (RS): una dispositivo origen @S (link-local) pregunta por el prefijo de la red en la que se encuentra a todos los router ipv6.
+- Router Advertisement (RA): el router le responde con su prefijo, “El prefijo es 2001:720:1014:2” , este mensaje el router lo manda a todos los nodos por si falta alguno más por configurar.
+- Autoconfiguración, el dispositivo origen a partir de su MAC y el prefijo de red se autoconfigura: 2001:720:1014:2:208:2ff:fe67:5cca
+- Se pregunta si alguien tiene esa dirección, si pasa un tiempo y nadie contesta significa que se puede usar esa direccion obtenida en la autoconfiguración. Esto se hace meediante el protocolo DAD (Duplicate Address Detection) similar al ARP gratuito.
+
+NO ES NECESASRIO
+Modificar el fichero /etc/mygate para que incluya el encaminador por defecto:
+    - Añadir: 2001:470:736b:bff::1(@ip6 del router)
+
+20. sh /etc/netstart
+
+21. Una vez se hace el ssh desde el router a la VM2 a partir del link-local y la interfaz %vlan1199
+ya aparece la direccion publica en la VM2, esta se ha autoconfigurado a partir del prefijo del router
+y la informacion de la máquina (su dir MAC).
+La dirección resultante es la siguiente: 2001:470:736b:bff:5054:ff:fe0b:ff02
+2001:470:736b:bff:5054:ff:fe0b:ff02
+
+Ahora ya funciona el ping6 desde el router a esta direccion, pero falta comprobar que se puede acceder desde la máquina de centos.
+Deberia poder realizarse ya que el router hace de encaminador.
+
+Para que el router pueda actuar como encaminador hay que indicarle la ruta exacta en el fichero de la interfaz hostname.vio0 para permitir el encaminamiento:
+    '!route add -inet6 2001:470:736b:bff:5054:ff:fe0b:ff02/64 2001:470:736b:bff::1'
+
+
+
+
+
 
