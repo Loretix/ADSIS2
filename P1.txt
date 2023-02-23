@@ -80,6 +80,9 @@ CONFIGURACION IMAGEN BASE:
 
 Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la máquina física:
     virsh -c qemu:///system undefine oB
+    virsh -c qemu:///system undefine orouterB
+    virsh -c qemu:///system undefine oBFF2
+
 
 CREACIÓN Y CONFIGURACIÓN BÁSICA DE UN ROUTER IPV6:
 
@@ -97,7 +100,7 @@ Verificar que el fichero orouterW.qcow2 tenga como grupo propietario "vmu" y per
     - mac address: 52:54:00:W:XY:01 -  52:54:00:0b:ff:01
     - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff1(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
 4. Definir la máquina en libvirt con :
-    virsh -c qemu+ssh://a796598@155.210.154.201/system define orouterB.xml
+    virsh -c qemu+ssh://a796598@155.210.154.203/system define orouterB.xml
 5. Modificar el fichero /etc/hostname.vio0, cofiguración estática:
     - Eliminar configuracion actual: ifconfig vio0 -inet
     - echo 'inet6 alias 2001:470:736b:f000::1b1 64' > /etc/hostname.vio0
@@ -146,7 +149,7 @@ para una nueva VM de nombre "oWXYZ" (con Z=2).
     - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:02
     - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff2(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
 14. Definir la máquina:
-    virsh -c qemu+ssh://a796598@155.210.154.201/system define oBFF2.xml
+    virsh -c qemu+ssh://a796598@155.210.154.193/system define oBFF2.xml
 15. Editar /etc/hostname.vio0 para que contenga solo las líneas (solo lo activamos, pero que no coja configuración automática de IPv6) :
     up
     inet6 -soii
@@ -181,13 +184,21 @@ Modificar el fichero /etc/mygate para que incluya el encaminador por defecto:
 ya aparece la direccion publica en la VM2, esta se ha autoconfigurado a partir del prefijo del router
 y la informacion de la máquina (su dir MAC).
 La dirección resultante es la siguiente: 2001:470:736b:bff:5054:ff:fe0b:ff02
-2001:470:736b:bff:5054:ff:fe0b:ff02
+ssh a796598@2001:470:736b:bff:5054:ff:fe0b:ff02
 
 Ahora ya funciona el ping6 desde el router a esta direccion, pero falta comprobar que se puede acceder desde la máquina de centos.
 Deberia poder realizarse ya que el router hace de encaminador.
 
 Para que el router pueda actuar como encaminador hay que indicarle la ruta exacta en el fichero de la interfaz hostname.vio0 para permitir el encaminamiento:
     '!route add -inet6 2001:470:736b:bff:5054:ff:fe0b:ff02/64 2001:470:736b:bff::1'
+
+
+Permitir entrar al router sin contraseña a la MV interior.
+    - ssh-keygen
+    - scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff:5054:ff:fe0b:ff02]:/home/a796598/.ssh/authorized_keys"
+
+
+
 
 
 

@@ -1,0 +1,51 @@
+ 
+    CONFIGURACIÓN DE LAS MÁQUINAS:
+----------------------------------
+   cd /misc/alumnos/as2/as22022/a796598
+
+Creamos imagen diferencial de las otras dos máquinas:
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF3.qcow2
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF4.qcow2
+
+Copiamos .xml:
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF3.xml
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF4.xml
+
+Modificar en el oBFF3.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF3.qcow2
+    - name: oBFF3
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:03
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff3(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=3 MV3)
+
+Modificar en el oBFF4.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF4.qcow2
+    - name: oBFF4
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:04
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff4(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=4 router)
+
+Definir la máquina:
+    virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF3.xml
+    virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF4.xml
+
+    CONFIGURACION RED EN oBFF3 y oBFF4
+----------------------------------
+Configuro hostname.vio0
+	-inet6
+	up
+Configuro hostname.vlan1199
+	inet6 alias 2001:470:736b:1ff::3 64 vlan 1199 vlandev vio0
+	-temporary
+Configuro /etc/mygate
+	2001:470:736b:1ff::1
+Configuro /etc/myname
+	ns1 (oBFF3) o ns2 (oBFF4)
+
+    CAMBIAR CONFIGURACIÓN DE oBFF2
+----------------------------------
+Cambio de ip autoconfigurada con rad, por ip estática en hostname.vio0
+	inet6 alias 2001:470:736b:1ff::2 64 vlan 1199 vlandev vio0
+	-autoconfprivacy
+
+    Con sh /etc/netstart se actualiza la configuración.
+
+
