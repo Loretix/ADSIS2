@@ -51,7 +51,7 @@ scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::4]:/home/a79
 Configurar, como clientes DNS (resolv.conf), todas las máquinas. (servidor en oBFF2)
     En el fichero resolv.conf hay que indicar los servidores de nombres, en orden de búsqueda, a los que se les solicita información del DNS. Siempre con dirección IP. (EN OROUTERB, MV3, MV4)
         - Añadir en resolv.conf: nameserver 2001:470:736b:bff:5054:ff:fe0b:ff02
-        - Excepto en la mv2 que es el servidor, ahi se pone la ip de bucle local 127.0.0.1
+        - Excepto en la mv2 que es el servidor, ahi se pone la ip de bucle local ::1 para que las peticiones se realice a nuestro servidor caché
 
 De forma similar configurar todas las máquinas como clietes ntp. (servidor en oBFF2)
     En este caso para los clientes modificar el fichero /etc/ntpd.conf (EN LAS MV3 Y MV4)
@@ -73,17 +73,51 @@ Modificar nombre:
  Comprobar funcionamiento mediante: ntpctl -sa
  Comprobar que se ha encendido mediante: grep ntp /var/log/*
 
- debería salir esto???
-----------------------------------
-central:~/ ntpdate -q ntp.time.nl
-server 2a00:d78:0:712:94:198:159:14, stratum 1, offset -0.001884, delay 0.06395
-server 2a00:d78:0:712:94:198:159:10, stratum 1, offset -0.001446, delay 0.06270
-server 94.198.159.14, stratum 1, offset -0.003026, delay 0.07584
-server 94.198.159.10, stratum 1, offset -0.003168, delay 0.07544
-26 Feb 20:32:33 ntpdate[33956]: adjust time server 2a00:d78:0:712:94:198:159:10 offset -0.001446 sec
-central:~/ ntpdate -q ntp1
-server 155.210.12.9, stratum 3, offset -0.003327, delay 0.02612
-26 Feb 20:33:32 ntpdate[34021]: adjust time server 155.210.12.9 offset -0.003327 sec
+    CONFIGURACION SERVIDOR DNS RECURSIVO CON CACHÉ
+------------------------------------------------------
+Edicion fichero rc.conf.local añadiendo unbound_flags, para que el demonio se inicie al encender la máquina.
+
+La configuración va a ser medinate el unbound.
+– Demonio : unbound
+– Configuración: unbound.conf
+– Comprobación configuración:unbound-checkconf
+– Unbound-control, unbound-control-setup, unbound-host
+
+# Configuración básica
+# unbound.conf for a local subnet.
+server:
+    interface: 0.0.0.0
+    interface: ::0
+    access-control: 2001:470:736b:bff::/64 allow
+    access-control: ::1 allow
+    verbosity: 1
+
+    hide-identity:yes
+    hide-version:yes
+# enable remote-control
+remote-control:
+    control-enable: yes
+    control-use-cert: no
+forward-zone:
+    name: “.” #Utilizar para todas las peticiones
+    forward-addr: 2001:470:20::2 # he.net
+    forward-first: yes # si forwarder falla, intentar directo
+
+# en directorio /var/unbound/etc/unbound.conf de OpenBSD
+
+
+- Añadimos:
+    access-control: 2001:470:736b:bff::/64 allow
+    #indicamos en que interfaz escucharemos y permitimos peticiones recursivas desde nuestra máquina localhost(::1) y desde la subred de nuestra vlan.
+
+    hide-identity:yes
+    hide-version:yes
+    #para ocultar a los clientes la versión de unbound y la identidad de nuestro servidor
+
+- Comprobar funcionamiento:
+    dig 2001:470:0:50::2
+		- La primera vez tarda 32ms
+        - Al repetir otra vez el mismo dig ahora el query time es de 0ms porque esta en caché
 
 
     CONFIGURACION SERVIDORES DNS
