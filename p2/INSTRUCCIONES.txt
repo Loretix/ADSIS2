@@ -1,0 +1,4 @@
+ 
+Configuracion de una maquina virtual e nuestra propia máqiona ocnfigurando el fichero xml para uestra distribucion(segun verisones y nuestro sop cambia)
+
+Para derivados y tal

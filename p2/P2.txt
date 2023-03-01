@@ -1,0 +1,91 @@
+ 
+    CONFIGURACIÓN DE LAS MÁQUINAS:
+----------------------------------
+   cd /misc/alumnos/as2/as22022/a796598
+
+Creamos imagen diferencial de las otras dos máquinas:
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF3.qcow2
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF4.qcow2
+
+Copiamos .xml:
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF3.xml
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF4.xml
+
+Modificar en el oBFF3.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF3.qcow2
+    - name: oBFF3
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:03
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff3(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=3 MV3)
+
+Modificar en el oBFF4.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF4.qcow2
+    - name: oBFF4
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:04
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff4(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=4 router)
+
+Definir la máquina:
+    virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF3.xml
+    virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF4.xml
+
+    CONFIGURACION RED EN oBFF3 y oBFF4
+----------------------------------
+Configuro /etc/hostname.vio0
+	-inet6
+	up
+Configuro /etc/hostname.vlan1199
+    vlan 1199 vlandev vio0 up
+    inet6 inet6 alias 2001:470:736b:bff::3 64 -soii -temporary
+Configuro /etc/mygate ¿hace falta?
+	2001:470:736b:bff::1
+Configuro /etc/myname
+	ns1 (oBFF3) o ns2 (oBFF4)
+
+    PERMITIR SSH DESDE CENTRA U CENTOS // CREO QUE NO SE CAMBIA
+----------------------------------
+scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::3]:/home/a796598/.ssh/authorized_keys"
+
+scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::4]:/home/a796598/.ssh/authorized_keys"
+
+    Clientes DNS y NTP
+----------------------------------
+Configurar, como clientes DNS (resolv.conf), todas las máquinas. (servidor en oBFF2)
+    En el fichero resolv.conf hay que indicar los servidores de nombres, en orden de búsqueda, a los que se les solicita información del DNS. Siempre con dirección IP. (EN OROUTERB, MV3, MV4)
+        - Añadir en resolv.conf: nameserver 2001:470:736b:bff:5054:ff:fe0b:ff02
+        - Excepto en la mv2 que es el servidor, ahi se pone la ip de bucle local 127.0.0.1
+
+De forma similar configurar todas las máquinas como clietes ntp. (servidor en oBFF2)
+    En este caso para los clientes modificar el fichero /etc/ntpd.conf (EN LAS MV3 Y MV4)
+        - Para los clietes añadir: server 2001:470:736b:bff:5054:ff:fe0b:ff02
+
+    **El router externo (orouterB?) no va a servirse del servidor ntp de la mv2, se servirá de un servidor ntp, por ello igual no hay que modificar el /etc/ntp.conf en el router.
+
+    Servicio de tiempo
+----------------------------------
+Configuracion servidor ntp en MV2:
+Añadir en el fichero /etc/ntpd.conf:
+	server 2001:470:0:50::2 trusted #trusted para que cuando se inicie el sistema se cargue el time de ese server
+	server 2001:470:0:2c8::2 trusted # son los servidor stratum de referencia
+    listen on * #para que actue como servidor
+Modificar nombre:
+    - vi /etc/myname: ntp1
+
+ Poner en marcha el servidor NTP mediante: ntpd -s ?? automatico, poner opcion -s e un fichero
+ Comprobar funcionamiento mediante: ntpctl -sa
+ Comprobar que se ha encendido mediante: grep ntp /var/log/*
+
+ debería salir esto???
+----------------------------------
+central:~/ ntpdate -q ntp.time.nl
+server 2a00:d78:0:712:94:198:159:14, stratum 1, offset -0.001884, delay 0.06395
+server 2a00:d78:0:712:94:198:159:10, stratum 1, offset -0.001446, delay 0.06270
+server 94.198.159.14, stratum 1, offset -0.003026, delay 0.07584
+server 94.198.159.10, stratum 1, offset -0.003168, delay 0.07544
+26 Feb 20:32:33 ntpdate[33956]: adjust time server 2a00:d78:0:712:94:198:159:10 offset -0.001446 sec
+central:~/ ntpdate -q ntp1
+server 155.210.12.9, stratum 3, offset -0.003327, delay 0.02612
+26 Feb 20:33:32 ntpdate[34021]: adjust time server 155.210.12.9 offset -0.003327 sec
+
+
+    CONFIGURACION SERVIDORES DNS
+------------------------------------------------------
+

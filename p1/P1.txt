@@ -1,0 +1,208 @@
+df da el contenido de la particion y eso da los metadatos (organizacion del sistema de ficheros) el du es lo segundo -s sa todo lo que esta en todos los directorios y ficheros en nuestro sistema de ficheros -sh dara todo a nivel de ficheros y directorios pero no metadatos como df
+
+ps aux, ve los procesos de usuario con mas detalle
+
+top, procesos en tiempo real (htop)
+
+lsof, si esta abierto un fichero en lectura o escritura no te ermite desmontarlo, con lsof te dice cual es ese fichero abierto
+
+comandods, awk, grep, awc, cat, echar vistacillo a las diapos eb moodle
+xargs, ka salida o entrada estandar lo usa como salida estandar y hay muchos parametrs que permiten coger eso por enrada estandar ??????, el xargs se permite modificar ese limite.
+
+tr, transformacion
+tee, para guardar lo que sae por salida estandar
+
+
+du -sh .??*, saca todos los ficheros ocultos
+
+
+fe80 direcion ip6 local
+
+COPIAS DE SEGURIDAD:
+scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.qcow2 .
+scp a796598@155.210.154.200:/misc/alumnos/as2/as22022/a796598/oB.xml .
+CONTRASEÑA: L9oreto108
+PASOS:
+
+CONFIGURACION IMAGEN BASE:
+1. copiar los ficheros de configuracion y renombrarlos en mi directorio personal
+    cp /misc/usuarios/unai/vms/o.qcow2 /misc/alumnos/as2/as22022/a796598/oB.qcow2
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oB.xml
+2. Asignarles permiso rw para grupo
+    chmod g+w oB.qcow2
+    chmod g+w oB.xml
+3. Modificamos el fichero oB.xml:
+    - Campo mac address 52:54:00:0B:11:01
+    - Campo name oB
+    - Campo uuid, cambiar últimas 5 cifras con 11110(W,1,1,Z)
+    - Campo source /misc/alumnos/as2/as22022/a796598/oB.qcow2
+4. Definimos la imegen del sistema (cada vez que se edita el
+   fichero oB.xml hay que volver a ejecutar ese comando)
+    virsh -c qemu:///system define oB.xml
+   Y arrancar el virt-manager (previamente instalado) conectandonos con la ip de la máquina a la que nos conectamos (ej. 155.210.154.196) con nuestro usuario (a796598)
+5. Iniciar sesión en la maquina (user: root, password: lojusto2), eliminar configuracion IP
+    ifconfig vio0 -inet
+   Y modificar fichero /etc/hostname.vio0 para activar tarjeta de red mediante "up"
+        up
+        inet6 eui64
+
+    Con sh /etc/netstart se actualiza la configuración.
+
+    Para comprobar la dirección ipv6 de link-local que se le ha asignado hacer:
+        ifconfig, ya vemos que se le ha asignado la ip6 fe80::5054:ff:fe0b:1101%vio0
+
+    Podemos comprobar que se puede hacer ping6 a la direccio link-local de la interfaz br1, ya que hemos indicado que nos conectabamos a esta en el fichero de autoconfiguracion.
+        ping6 fe80::6e58:b50a:166a:22e1
+6. Crear cuenta de usuario a796598 y la añadimos al grupo wheel.
+    Crear usuario:
+        useradd -m a796598 (-m para crar directorio home al usuario)
+    Añadir usuario a un grupo:
+        usermod -a -G wheel a796598 (si no va quitas el -a)
+   * Comprobar que se ha realizado bien haciendo "cat /etc/passwd" y mirando que pertenece al grupo con "groups a796598"
+   Configurar doas para que los miembros del grupo wheel tengan permisos de root sin contraseña.
+     vi /etc/doas.conf, añadir archivo y editarlo con:
+        permit nopass keepenv :wheel
+        permit nopass keepenv root as root
+
+    Consultar pagina: https://forums.freebsd.org/threads/doas-sudo-alternative.69219/
+7. Cambiamos de usuario 'su a796598' y copiamos la key_pub de los host del lab al fichero ".ssh/authorized_keys" de esta VM.
+
+    Utilizar direccion link-local ipv6 en la VM y en la interfaz "br1" de centos:
+
+    LA @LINK-LOCAL CAMBIA DEPENDIENDO DE LA MÁQUINA, CUIDADO :)
+
+        scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[fe80::5054:ff:fe0b:1101%br1]:/home/a796598/.ssh/authorized_keys"
+
+
+    Para conectarse desde lab o desde central a la  mv base :
+        ssh -6 a796598@fe80::5054:ff:fe0b:1101%br1
+
+8. Parar la máquina: shutdown, y cuando os indica que ya ha parado, forzar su parada completa desde el menu de virt-manager.
+
+Ejecutar un "undefine" de la VM mediante virsh para limpiar su presencia en la máquina física:
+    virsh -c qemu:///system undefine oB
+    virsh -c qemu:///system undefine orouterB
+    virsh -c qemu:///system undefine oBFF2
+
+
+CREACIÓN Y CONFIGURACIÓN BÁSICA DE UN ROUTER IPV6:
+
+1. Crear una imagen diferencial con imagen base o.qcow2, y de nombre orouterB.qcow2, según el método explicitado en el anexo A.
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 orouterB.qcow2
+    ** Quiterle permisos de escritura a la imagen base oB.qcow2
+    RECORDAR QUE LE HE QUITADO PERMISO DE ESCRITURA A OB.QCOW2
+2. Copiar el fichero o.xml a orouterB.xml, y modificar:
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/orouterB.xml
+    - source: /misc/alumnos/as2/as22022/a796598/orouterB.qcow2
+    - name: orouterB
+Verificar que el fichero orouterW.qcow2 tenga como grupo propietario "vmu" y permisos de grupo "rw", con ls -l
+    chmod g+w orouterB.xml
+3. Modificar orouterB.xml con:
+    - mac address: 52:54:00:W:XY:01 -  52:54:00:0b:ff:01
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff1(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
+4. Definir la máquina en libvirt con :
+    virsh -c qemu+ssh://a796598@155.210.154.203/system define orouterB.xml
+5. Modificar el fichero /etc/hostname.vio0, cofiguración estática:
+    - Eliminar configuracion actual: ifconfig vio0 -inet
+    - echo 'inet6 alias 2001:470:736b:f000::1b1 64' > /etc/hostname.vio0
+   Modificar el fichero /etc/mygate para que incluya el encaminador por defecto (este es el router central):
+    - Añadir: 2001:470:736b:F000::1 (@ip6 publica de central para encaminar por ahi)
+Con "sh /etc/netstart" mira lo que hay en los archivos y configura automaticamente
+
+Comprobar que funciona con:
+    Desde el lab: ping6 2001:470:736b:f000::1b1 (se puede hacer ping al router)
+    Desde central: ping6 2001:470:736b:f000::1b1 (se puede hacer ping al router)
+    Desde el router:  ping6 2001:470:736b:f000::1 (se puede hacer ping a central)
+
+6. Copiar fichero /etc/hostname.vio0 a otro con nombre /etc/hostname.vlan1199:
+    - cp /etc/hostname.vio0 /etc/hostname.vlan1199
+    - Modificar /etc/hostname.vlan1199 con:
+        inet6 2001:470:736b:bff::1 64 vlan 1199 vlandev vio0 -temporary
+Añadir temporary en el hostname.vio0 y .vlan1199 y a partir de aqui en todos añadir -temporary
+
+7.  Para activar encaminamiento ip6 y no contestación a anuncios de prefijo ip6, modificar:
+    vi /etc/sysctl.conf
+    - Añadir: net.inet6.ip6.forwarding=1
+8. Poner en marchaservicio rad: rcctl enable rad
+Adicionalmente, indicar la tarjeta, en la que se anuncia la información de prefijo y encaminador por defecto, en el fichero "/etc/rad.conf" con la nueva línea "interface <vuestro_interface>".
+    vi /etc/rad.conf
+    - Añadir: interface vlan1199
+¿Que hace? ¿Para qué sirve? ¿Por qué lo he configurado asi?
+Hay que indicar la interfaz vlan1199 porque es la que se conecta con la máquina virtual, y es la interfaz en la que queremos que actue el servicio rad.
+Rad es un demonio de anuncio de enrutador IPv6. Envía periódicamente mensajes de anuncio de enrutador (router advertusement) IPv6 con información de su prefijo y enrutador predeterminado. Clientes como slaacd(8) los utilizan para configurar direcciones IPv6 en interfaces de red y establecer rutas predeterminadas. Además, escucha los mensajes router solicitation de IPv6 y responde con router advertisement.
+
+9. Modificar el nombre de la máquina:
+    vi /etc/myname
+    - Añadir: orouterB
+10. Rearrancar la VM con "shutdown -r now".
+11. Comprobar ssh a796598@2001:470:736b:f000::1b1 y grupo wheel verificado con comando "id"
+
+CREACIÓN DE OTRA MÁQUINA VM DE PRUEBA PARA RED INTERIOR:
+
+13. Efectuar otra imagen diferencial nueva sobre la misma base (oB.qcow2)
+para una nueva VM de nombre "oWXYZ" (con Z=2).
+    cd /misc/alumnos/as2/as22022/a796598
+    - Creamos imagen diferencial: qemu-img create -f qcow2 -o backing_file=oB.qcow2 oBFF2.qcow2
+    - Copiamos .xml: cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/oBFF2.xml
+    Modificar en el oBFF2.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBFF2.qcow2
+    - name: oBFF2
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:ff:02
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711ff2(cambiar últimas 4 o 5 cifras con W=11, X=f, Y= f, Z=1 router)
+14. Definir la máquina:
+    virsh -c qemu+ssh://a796598@155.210.154.193/system define oBFF2.xml
+15. Editar /etc/hostname.vio0 para que contenga solo las líneas (solo lo activamos, pero que no coja configuración automática de IPv6) :
+    up
+    inet6 -soii
+    inet6 -temporary (paso 17)
+16. Crear fichero /etc/hostname.vlan1199 con el contenido (en este si que tiene que tomar la IPv6 automática):
+    vlan 1199 vlandev vio0 up
+    inet6 autoconf -soii -temporary (paso 17)
+
+    Con sh /etc/netstart se actualiza la configuración.
+
+18. Poner el nombre DNS que corresponde a esta VM en /etc/myname.
+ Nombre libvirt y DNS de VMS : <ident SO>WXYZ
+***** ident SO = o (OpenBSD), u (ubuntu), c (centos) =>  oBFF2
+
+19. Habilitar el servicio "slaacd" mediante "rcctl". ¿ Para qué es necesario ?
+rcctl enable slaacd
+
+Es un demonio de configuracion automatica de direcciones para clientes, se encarga de escuchar los mensajes de anuncio del router (router advertisement), en nuestro caso enviados por el servicio rad (lanzado en el router). Consiste en que el cliente se autoconfigure con la informacion que tiene y y la anunciada por los routers.
+El procedimiento es el siguiente:
+- Router Solicitation (RS): una dispositivo origen @S (link-local) pregunta por el prefijo de la red en la que se encuentra a todos los router ipv6.
+- Router Advertisement (RA): el router le responde con su prefijo, “El prefijo es 2001:720:1014:2” , este mensaje el router lo manda a todos los nodos por si falta alguno más por configurar.
+- Autoconfiguración, el dispositivo origen a partir de su MAC y el prefijo de red se autoconfigura: 2001:720:1014:2:208:2ff:fe67:5cca
+- Se pregunta si alguien tiene esa dirección, si pasa un tiempo y nadie contesta significa que se puede usar esa direccion obtenida en la autoconfiguración. Esto se hace meediante el protocolo DAD (Duplicate Address Detection) similar al ARP gratuito.
+
+NO ES NECESASRIO
+Modificar el fichero /etc/mygate para que incluya el encaminador por defecto:
+    - Añadir: 2001:470:736b:bff::1(@ip6 del router)
+
+20. sh /etc/netstart
+
+21. Una vez se hace el ssh desde el router a la VM2 a partir del link-local y la interfaz %vlan1199
+ya aparece la direccion publica en la VM2, esta se ha autoconfigurado a partir del prefijo del router
+y la informacion de la máquina (su dir MAC).
+La dirección resultante es la siguiente: 2001:470:736b:bff:5054:ff:fe0b:ff02
+ssh a796598@2001:470:736b:bff:5054:ff:fe0b:ff02
+
+Ahora ya funciona el ping6 desde el router a esta direccion, pero falta comprobar que se puede acceder desde la máquina de centos.
+Deberia poder realizarse ya que el router hace de encaminador.
+
+Para que el router pueda actuar como encaminador hay que indicarle la ruta exacta en el fichero de la interfaz hostname.vio0 para permitir el encaminamiento:
+    '!route add -inet6 2001:470:736b:bff:5054:ff:fe0b:ff02/64 2001:470:736b:bff::1'
+
+
+Permitir entrar al router sin contraseña a la MV interior.
+    - ssh-keygen
+    - scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff:5054:ff:fe0b:ff02]:/home/a796598/.ssh/authorized_keys"
+
+
+
+
+
+
+
+
+
