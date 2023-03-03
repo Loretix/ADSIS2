@@ -120,6 +120,118 @@ forward-zone:
         - Al repetir otra vez el mismo dig ahora el query time es de 0ms porque esta en caché
 
 
-    CONFIGURACION SERVIDORES DNS
+    CONFIGURACION SERVIDORES DNS MV3 Y MV4
 ------------------------------------------------------
+
+CONFIGURACIÓN MAESTRO:
+------------------------------
+Fichero /var/nsd/etc/nsd.conf
+server:
+    hide-version: yes
+    ip-address: 2001:470:736b:bff::3
+        database: "/var/nsd/db/nsd.db"
+        username: _nsd
+        logfile: "/var/log/nsd.log"
+        pidfile: "/var/nsd/run/nsd.pid"
+port: 53
+# Number of NSD servers to fork.
+server-count: 1
+# listen only on IPv6 connections
+ip6-only: yes
+#Maximum number of concurrent TCP connections per server.
+# This option should have a value below 1000.
+tcp-count: 60
+# The directory for zonefile: files.
+zonesdir: "/var/nsd/zones"
+# TLS Configuration for nsd-control
+remote-control:
+    control-enable: yes
+    control-interface: ::1
+    control-port: 8952
+    server-key-file: "/var/nsd/etc/nsd_server.key"
+    server-cert-file: "/var/nsd/etc/nsd_server.pem"
+    control-key-file: "/var/nsd/etc/nsd_control.key"
+    control-cert-file: "/var/nsd/etc/nsd_control.pem"
+# key for transfers between replicas for zone ff.es.eu.org
+key:
+    name: "mskey"
+    algorithm: hmac-sha256
+secret:
+"p0VUzIimd6ciuskUQiy2hMFTUMpsuVVGa3dbJFC630Q="
+# patrón macro para quitar repeticiones
+pattern :
+    name: “toslave”
+    notify: 2001:470:736b:bff::4 NOKEY
+    provide-xfr: 2001:470:736b:bff::4 NOKEY
+# zona "ff.es.eu.org"
+zone:
+    name: "ff.es.eu.org"
+    zonefile: "ff.es.eu.org.directo"
+    include-pattern: “toslave”
+# zona <cifra menor peso>.<cifra mayor peso>.b.6.3.7.0.7.4.0.1.0.0.2
+zone:
+    name: "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+    zonefile: "ff.es.eu.org.inverso"
+    include-pattern: “toslave”
+
+
+CONFIGURACIÓN ESCLAVO:
+------------------------------------
+#patrón macro para quitar repeticiones
+pattern :
+    name: “tomaster”
+    allow-notify: 2001:470:736b:bff::4 NOKEY
+    request-xfr: AXFR 2001:470:736b:bff::4 NOKEY
+# zona "ff.es.eu.org"
+zone:
+    name: "ff.es.eu.org"
+    zonefile: "ff.es.eu.org.directo"
+    include-pattern: “tomaster”
+# zona "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+zone:
+    name: "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+    zonefile: "ff.es.eu.org.inverso"
+    include-pattern: “tomaster”
+
+
+PARA COMPROBAR QUE O HAY ERRORES DE SINTAXIS: doas nsd-checkconf /var/nsd/etc/nsd.conf
+
+
+CONFIGURACIÓN FICHEROS DE ZONAS
+--------------------------------
+MASTER (MV3)
+------
+Directorio de zonas:
+    - var/nsd/zones/ff.es.eu.org.directo
+    - var/nsd/zones/ff.es.eu.org.inverso
+
+    $ORIGIN b.ff.es.eu.org. ;Zona en la que das el servicio
+    @       IN SOA ns1.ff.es.eu.org. a796598.unizar.es. (
+                    2023030301 ; serial number
+                    21600 ; refresh after 6 hours
+                    3600 ; retry after 1 hour
+                    604800 ; expire after 1 week
+                    86400 ) ; minimum TTL of 1 day
+            IN NS ns1.ff.es.eu.org.
+    ; Indicamos la resolucion directa de nombres
+    router1 IN AAAA 2001:470:736b:bff::1 ; para IPv6
+        ns1 IN AAAA 2001:470:736b:bff::3 ; para IPv6
+        ns2 IN AAAA 2001:470:736b:bff::4 ; para IPv6
+       ntp1 IN AAAA 2001:470:736b:bff::2 ; para IPv6
+    ; Registro CNAME nombre
+
+
+
+     ;Registros de glue records
+     ns1.a645837.as2.unizar.es. IN A 155.210.161.148
+     ns2.a645837.as2.unizar.es. IN A 155.210.161.164
+
+ESCLAVO (MV4)
+------
+Directorio de zonas:
+    - var/nsd/zones/slave/ff.es.eu.org.directo
+    - var/nsd/zones/slave/ff.es.eu.org.inverso
+
+
+
 
