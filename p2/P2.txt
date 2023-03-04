@@ -27,14 +27,14 @@ Definir la máquina:
     virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF3.xml
     virsh -c qemu+ssh://a796598@155.210.154.204/system define oBFF4.xml
 
-    CONFIGURACION RED EN oBFF3 y oBFF4
+    CONFIGURACION RED EN oBFF2, oBFF3 y oBFF4
 ----------------------------------
 Configuro /etc/hostname.vio0
 	-inet6
 	up
 Configuro /etc/hostname.vlan1199
     vlan 1199 vlandev vio0 up
-    inet6 inet6 alias 2001:470:736b:bff::3 64 -soii -temporary
+    inet6 alias 2001:470:736b:bff::3 64 -soii -temporary
 Configuro /etc/mygate ¿hace falta?
 	2001:470:736b:bff::1
 Configuro /etc/myname
@@ -76,6 +76,7 @@ Modificar nombre:
     CONFIGURACION SERVIDOR DNS RECURSIVO CON CACHÉ
 ------------------------------------------------------
 Edicion fichero rc.conf.local añadiendo unbound_flags, para que el demonio se inicie al encender la máquina.
+EN VEZ DE ESO SE HA INICIADO EL DEMONIO MEDIANTE RCCTL ENABLE UNBOUND (esto ya actualiza los flags y hace que se active cuando se enciende la máquina)
 
 La configuración va a ser medinate el unbound.
 – Demonio : unbound
@@ -165,7 +166,7 @@ pattern :
     provide-xfr: 2001:470:736b:bff::4 NOKEY
 # zona "ff.es.eu.org"
 zone:
-    name: "ff.es.eu.org"
+    name: "b.ff.es.eu.org"
     zonefile: "ff.es.eu.org.directo"
     include-pattern: “toslave”
 # zona <cifra menor peso>.<cifra mayor peso>.b.6.3.7.0.7.4.0.1.0.0.2
@@ -184,7 +185,7 @@ pattern :
     request-xfr: AXFR 2001:470:736b:bff::4 NOKEY
 # zona "ff.es.eu.org"
 zone:
-    name: "ff.es.eu.org"
+    name: "b.ff.es.eu.org"
     zonefile: "ff.es.eu.org.directo"
     include-pattern: “tomaster”
 # zona "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
@@ -205,32 +206,88 @@ Directorio de zonas:
     - var/nsd/zones/ff.es.eu.org.directo
     - var/nsd/zones/ff.es.eu.org.inverso
 
+Esto de origen es la base de datos distribuido que contiene la
+información de resolución de nombres DNS.
+Esta base de datos se tiene que especificar para cada zona (una zona
+en caso es el espacio de nombres que gestiono).
+
     $ORIGIN b.ff.es.eu.org. ;Zona en la que das el servicio
-    @       IN SOA ns1.ff.es.eu.org. a796598.unizar.es. (
+    @       IN SOA ns1.b.ff.es.eu.org. a796598.unizar.es. (
                     2023030301 ; serial number
                     21600 ; refresh after 6 hours
                     3600 ; retry after 1 hour
                     604800 ; expire after 1 week
                     86400 ) ; minimum TTL of 1 day
-            IN NS ns1.ff.es.eu.org.
+    ;Registros NS : servidores con autoridad (mastro y esclavos) de la zona DNS
+    @       IN NS ns1.b.ff.es.eu.org. ; maestro
+    @       IN NS ns2.b.ff.es.eu.org. ; esclavo
+
     ; Indicamos la resolucion directa de nombres
     router1 IN AAAA 2001:470:736b:bff::1 ; para IPv6
         ns1 IN AAAA 2001:470:736b:bff::3 ; para IPv6
         ns2 IN AAAA 2001:470:736b:bff::4 ; para IPv6
        ntp1 IN AAAA 2001:470:736b:bff::2 ; para IPv6
+
     ; Registro CNAME nombre
-
-
-
-     ;Registros de glue records
-     ns1.a645837.as2.unizar.es. IN A 155.210.161.148
-     ns2.a645837.as2.unizar.es. IN A 155.210.161.164
+    router1 IN CNAME orouterB
+        ns1 IN CNAME oBFF3
+        ns2 IN CNAME oBFF4
+       ntp1 IN CNAME oBFF2
+    ;los “glue records”
+ns1.b.ff.es.eu.org IN AAAA 2001:470:736b:bff::3
+ns2.b.ff.es.eu.org IN AAAA 2001:470:736b:bff::4
 
 ESCLAVO (MV4)
 ------
 Directorio de zonas:
     - var/nsd/zones/slave/ff.es.eu.org.directo
     - var/nsd/zones/slave/ff.es.eu.org.inverso
+
+
+
+
+COMANDOS INTERESANTES
+---------------------
+rcctl enable nsd
+rcctl restart nsd ;muy util para reiniciar el demonio
+doas vi /var/nsd/etc/nsd.conf
+doas vi /var/nsd/zones/ff.es.eu.org.directo
+doas nsd-checkzone b.ff.es.eu.org. /var/nsd/zones/ff.es.eu.org.directo
+
+COMPROBACIONES
+--------------------
+DESDE TODAS LAS MÁQUINAS SE PUEDE HACER CONSULTAS (DNS DIRECTO)
+- Comando:
+dig -6 @2001:4860:4860::8888 AAAA oBFF2.b.ff.es.eu.org
+- Muestra:
+;; ANSWER SECTION:
+oBFF2.b.ff.es.eu.org.   3600    IN      CNAME   ntp1.b.ff.es.eu.org.
+ntp1.b.ff.es.eu.org.    3600    IN      AAAA    2001:470:736b:bff::2
+
+- Comando:
+dig -6 @2001:4860:4860::8888 AAAA oBFF3.b.ff.es.eu.org
+- Muestra:
+;; ANSWER SECTION:
+oBFF3.b.ff.es.eu.org.   3600    IN      CNAME   ns1.b.ff.es.eu.org.
+ns1.b.ff.es.eu.org.     3600    IN      AAAA    2001:470:736b:bff::3
+
+- Comando:
+dig -6 @2001:4860:4860::8888 AAAA oBFF4.b.ff.es.eu.org
+- Muestra:
+; ANSWER SECTION:
+oBFF4.b.ff.es.eu.org.   3600    IN      CNAME   ns2.b.ff.es.eu.org.
+ns2.b.ff.es.eu.org.     3600    IN      AAAA    2001:470:736b:bff::4
+
+- Comando:
+dig -6 @2001:4860:4860::8888 AAAA orouterB.b.ff.es.eu.org
+- Muestra:
+;; ANSWER SECTION:
+orouterB.b.ff.es.eu.org. 3600   IN      CNAME   router1.b.ff.es.eu.org.
+router1.b.ff.es.eu.org. 3600    IN      AAAA    2001:470:736b:bff::1
+
+
+
+
 
 
 
