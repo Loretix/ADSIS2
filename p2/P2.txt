@@ -171,7 +171,7 @@ zone:
     include-pattern: “toslave”
 # zona <cifra menor peso>.<cifra mayor peso>.b.6.3.7.0.7.4.0.1.0.0.2
 zone:
-    name: "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+    name: "b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
     zonefile: "ff.es.eu.org.inverso"
     include-pattern: “toslave”
 
@@ -188,9 +188,9 @@ zone:
     name: "b.ff.es.eu.org"
     zonefile: "ff.es.eu.org.directo"
     include-pattern: “tomaster”
-# zona "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+# zona "b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
 zone:
-    name: "1.1.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
+    name: b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
     zonefile: "ff.es.eu.org.inverso"
     include-pattern: “tomaster”
 
@@ -211,6 +211,8 @@ información de resolución de nombres DNS.
 Esta base de datos se tiene que especificar para cada zona (una zona
 en caso es el espacio de nombres que gestiono).
 
+CONFIGURACIÓN DIRECTA
+---------------------
     $ORIGIN b.ff.es.eu.org. ;Zona en la que das el servicio
     @       IN SOA ns1.b.ff.es.eu.org. a796598.unizar.es. (
                     2023030301 ; serial number
@@ -218,7 +220,7 @@ en caso es el espacio de nombres que gestiono).
                     3600 ; retry after 1 hour
                     604800 ; expire after 1 week
                     86400 ) ; minimum TTL of 1 day
-    ;Registros NS : servidores con autoridad (mastro y esclavos) de la zona DNS
+    ;Registros NS : servidores con autoridad (mastro y esclavos) de la zona DNS, servidores autoritarios para ese dominio
     @       IN NS ns1.b.ff.es.eu.org. ; maestro
     @       IN NS ns2.b.ff.es.eu.org. ; esclavo
 
@@ -237,11 +239,26 @@ en caso es el espacio de nombres que gestiono).
 ns1.b.ff.es.eu.org IN AAAA 2001:470:736b:bff::3
 ns2.b.ff.es.eu.org IN AAAA 2001:470:736b:bff::4
 
-ESCLAVO (MV4)
-------
-Directorio de zonas:
-    - var/nsd/zones/slave/ff.es.eu.org.directo
-    - var/nsd/zones/slave/ff.es.eu.org.inverso
+CONFIGURACIÓN INVERSA
+---------------------
+$ORIGIN b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. ;Zona en la que das el servicio
+    @       IN SOA ns1.b.ff.es.eu.org. a796598.unizar.es. (
+                    2023030301 ; serial number
+                    21600 ; refresh after 6 hours
+                    3600 ; retry after 1 hour
+                    604800 ; expire after 1 week
+                    86400 ) ; minimum TTL of 1 day
+    ;Registros NS : servidores con autoridad (mastro y esclavos) de la zona DNS
+    @       IN NS ns1.b.ff.es.eu.org. ; maestro
+    @       IN NS ns2.b.ff.es.eu.org. ; esclavo
+
+    ; Indicamos la resolucion inversa de nombres
+    ;2001:0470:736b:0bff:0000:0000:0000:0001
+    1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f IN PTR router1.ff.es.eu.org.
+    2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f IN PTR ntp1.ff.es.eu.org.
+    3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f IN PTR ns1.ff.es.eu.org.
+    4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f IN PTR ns2.ff.es.eu.org.
+
 
 
 
@@ -253,6 +270,11 @@ rcctl restart nsd ;muy util para reiniciar el demonio
 doas vi /var/nsd/etc/nsd.conf
 doas vi /var/nsd/zones/ff.es.eu.org.directo
 doas nsd-checkzone b.ff.es.eu.org. /var/nsd/zones/ff.es.eu.org.directo
+doas nsd-checkzone b.ff.es.eu.org. /var/nsd/zones/ff.es.eu.org.inverso
+PARA ACTUALIZAR EL NSD:
+	CAMBIAR EL NUMERO DE SERIE DE LA ZONA (2020031101 esto es el numero de serie, hay que ir actualizando la version)
+	COMPROBAR CON NSD-CHECKZONE ( que el fichero esta bien)
+	HACER NSD-CONTROL RELOAD ZONE (pues pa actualizar la zona)
 
 COMPROBACIONES
 --------------------
@@ -284,6 +306,25 @@ dig -6 @2001:4860:4860::8888 AAAA orouterB.b.ff.es.eu.org
 ;; ANSWER SECTION:
 orouterB.b.ff.es.eu.org. 3600   IN      CNAME   router1.b.ff.es.eu.org.
 router1.b.ff.es.eu.org. 3600    IN      AAAA    2001:470:736b:bff::1
+
+- Comando:
+dig -6 @2001:4860:4860::8888 -x 2001:0470:736b:0bff:0000:0000:0000:0001
+- Muestra:
+;; ANSWER SECTION:
+1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3600 IN PTR router1.ff.es.eu.org.
+
+dig -6 @2001:4860:4860::8888 -x 2001:0470:736b:0bff:0000:0000:0000:0002
+;; ANSWER SECTION:
+2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3600 IN PTR ntp1.ff.es.eu.org.
+
+dig -6 @2001:4860:4860::8888 -x 2001:0470:736b:0bff:0000:0000:0000:0003
+;; ANSWER SECTION:
+3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3600 IN PTR ns1.ff.es.eu.org.
+
+dig -6 @2001:4860:4860::8888 -x 2001:0470:736b:0bff:0000:0000:0000:0004
+;; ANSWER SECTION:
+4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3600 IN PTR ns2.ff.es.eu.org.
+
 
 
 
