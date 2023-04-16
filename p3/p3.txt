@@ -1,0 +1,571 @@
+AÑADIR MÁQUINAS
+---------------
+
+Creamos imagen diferencial de las otras dos máquinas:
+    qemu-img create -f qcow2 -o backing_file=oB.qcow2 orouterB1.qcow2
+
+Copiamos .xml:
+    cp /misc/usuarios/unai/vms/o.xml /misc/alumnos/as2/as22022/a796598/orouterB1.xml
+
+Modificar en el orouterB1.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/orouterB1.qcow2
+    - name: orouterB1
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:10:01
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb7 11101(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=1 MV3)
+
+Definir la máquina:
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define orouterB1.xml
+
+
+1.Obtenemos imagen base:
+    cp /misc/usuarios/unai/vms/c74.qcow2 /misc/alumnos/as2/as22022/a796598/cB.qcow2
+    cp /misc/usuarios/unai/vms/c74.xml /misc/alumnos/as2/as22022/a796598/cB.xml
+2. Asignarles permiso rw para grupo
+    chmod g+w cB.qcow2
+    chmod g+w cB.xml
+3. Modificamos el fichero cB.xml:
+    - Campo mac address 52:54:00:0B:12:01
+    - Campo name cB
+    - Campo uuid, cambiar últimas 5 cifras con 11121(W,1,1,Z)
+    - Campo source /misc/alumnos/as2/as22022/a796598/cB.qcow2
+4. Definimos la maquina
+    virsh -c qemu:///system define cB.xml
+5. Creamos usuario:
+    useradd -m a796598
+    usermod -a -G wheel a796598
+    sudo visudo  - y descomentas la linea %wheel ALL=(ALL) NOPASSWD:ALL //PERMISOS DE ROOT
+6. Deshabilitar la configuración automática de IPv6 solo en la tajeta de red base (eth0)
+    *En fichero /etc/sysctl.conf (solo deben estar estas entradas activas) :
+        net.ipv6.conf.eth0.use_tempaddr = 0
+        net.ipv6.conf.eth0.autoconf = 0
+        net.ipv6.conf.eth0.accept_ra = 0
+7. Undefine de la magen base:
+    virsh -c qemu:///system undefine cB
+8. Creamos imagenes diferenciales
+    qemu-img create -f qcow2 -o backing_file=cB.qcow2 oBcliente1.qcow2
+    qemu-img create -f qcow2 -o backing_file=cB.qcow2 oBcliente2.qcow2
+    qemu-img create -f qcow2 -o backing_file=cB.qcow2 oBipa1.qcow2
+    qemu-img create -f qcow2 -o backing_file=cB.qcow2 oBipa2.qcow2
+    qemu-img create -f qcow2 -o backing_file=cB.qcow2 oBnfs1.qcow2
+9. Copiamos ficheros .xml
+    cp cB.xml oBcliente1.xml
+    cp cB.xml oBcliente2.xml
+    cp cB.xml oBipa1.xml
+    cp cB.xml oBipa2.xml
+    cp cB.xml oBnfs1.xml
+
+
+    chmod g+w oBcliente1.qcow2
+    chmod g+w oBcliente1.xml
+    chmod g+w oBcliente2.qcow2
+    chmod g+w oBcliente2.xml
+    chmod g+w oBipa1.xml
+    chmod g+w oBipa1.qcow2
+    chmod g+w oBipa2.xml
+    chmod g+w oBipa2.qcow2
+    chmod g+w oBnfs1.xml
+    chmod g+w oBnfs1.qcow2
+
+
+oBcliente1:
+     - source: /misc/alumnos/as2/as22022/a796598/oBcliente1.qcow2
+    - name: oBcliente1
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:12:02
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb7 11122(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=2 router)
+
+oBcliente2:
+ - source: /misc/alumnos/as2/as22022/a796598/oBcliente2.qcow2
+    - name: oBcliente2
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:12:03
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb7 11123(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=2 router)
+
+oBipa1.xml: 2001:470:736b:b11::2, W=B X=1 Y=1 Z=2
+    - source: /misc/alumnos/as2/as22022/a796598/oBipa1.qcow2
+    - name: oBipa1
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:11:02
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb7 11112(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=2 router)
+
+oBipa2.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBipa2.qcow2
+    - name: oBipa2
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:11:03
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb7 11113(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=3 router)
+
+oBnfs1.xml:
+    - source: /misc/alumnos/as2/as22022/a796598/oBnfs1.qcow2
+    - name: oBnfs1
+    - mac address: 52:54:00:W:XY:0Z -  52:54:00:0b:10:04
+    - campo "uuid": ecd3e45c-6426-432c-a700-fcdabb711104(cambiar últimas 4 o 5 cifras con W=11, X=1, Y= 0, Z=4 router)
+
+Definimos las máquinas nuevas:
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define oBcliente1.xml
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define oBcliente2.xml
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define oBipa1.xml
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define oBipa2.xml
+    virsh -c qemu+ssh://a796598@155.210.154.205/system define oBnfs1.xml
+
+
+CAMBIO DE LA RED:
+
+SUBRED 2001:470:736b:b20::/64 --- HECHAAA OKOKOKOKOK
+-----------------------------
+OROUTERB:
+    - vi /etc/hostname.vlan1199 (cambio ip)
+        2001:470:736b:b20::1
+    - /etc/mygate: no cambiar
+    - comrpobar ssh
+    - vi /etc/resolv.conf (actualizar direccion ip serv dns recursivo)
+        2001:470:736b:b20::2
+
+NTP:
+    - vi /etc/hostname.vlan1199 (cambio ip)
+        2001:470:736b:b20::2
+    - /etc/mygate:
+        2001:470:736b:b20::1
+    - comrpobar ssh
+    - vi /etc/resolv.conf (comprobar pero creo que no se toca nada)
+    - vi /var/unbound/etc/unbound.conf (modificar direcciones)
+        access-control: 2001:470:736b:0b00::/56 allow
+        stub-addr: 2001:470:736b:b20::3
+
+DNS1:
+    - vi /etc/hostname.vlan1199 (cambio ip)
+        2001:470:736b:b20::3
+    - /etc/mygate:
+        2001:470:736b:b20::1
+    - comrpobar ssh
+    - vi /etc/resolv.conf (cambiar nameserver) y /etc/ntpd.conf
+        2001:470:736b:b20::2
+    - vi /var/nsd/etc/nsd.conf
+        2001:470:736b:bff::3 >>> 2001:470:736b:b20::3
+        2001:470:736b:bff::4 >>> 2001:470:736b:b20::4
+    - vi /var/nsd/zones/ff.es.eu.org.directo (cambiar direcciones)
+    - vi /var/nsd/zones/ff.es.eu.org.inverso
+
+DNS2:
+    - vi /etc/hostname.vlan1199 (cambio ip)
+        2001:470:736b:b20::4
+    - /etc/mygate:
+        2001:470:736b:b20::1
+    - comrpobar ssh
+    - vi /etc/resolv.conf (cambiar nameserver) y /etc/ntpd.conf
+        2001:470:736b:b20::2
+    - vi /var/nsd/etc/nsd.conf
+        2001:470:736b:bff::3 >>> 2001:470:736b:b20::3
+        2001:470:736b:bff::4 >>> 2001:470:736b:b20::4
+
+SUBRED 2001:470:736b:b10::/60
+-----------------------------
+OROUTERB:-- HECHO OKOKO
+    - cp /etc/hostname.vlan1199 /etc/hostname.vlan1110
+    - vi /etc/hostname.vlan1110
+        vlan 1110 vlandev vio0 up
+        inet6 alias 2001:470:736b:b10::1 60 -soii -temporary
+    - Añadir una ruta para que si pregunta por b11 o b12 sepa que tiene que ir por b10
+    	echo '!route add -inet6 2001:470:736b:b11::/64 2001:470:736b:b10::2' > /etc/hostname.vlan1110
+    	echo '!route add -inet6 2001:470:736b:b12::/64 2001:470:736b:b10::2' > /etc/hostname.vlan1110
+
+OROUTERB1:-- HECHO OKOKO
+    - vi /etc/hostname.vlan1110
+        vlan 1110 vlandev vio0 up
+        inet6 alias 2001:470:736b:b10::2 60 -soii -temporary
+    - /etc/mygate:
+        2001:470:736b:b10::1
+    - vi /etc/resolv.conf (cliente DNS)
+        nameserver 2001:470:736b:b20::2
+    - vi /etc/ntpd.conf (cliente DNS) -- FALTA ESTOOOOOPOOOOO
+        server 2001:470:736b:b20::2
+    - vi /etc/sysctl.conf -- PERMITIR ENCAMINAMIENTO IPV6
+    Añadir: net.inet6.ip6.forwarding=1
+    - Permitimos entrar mediante ssh desde los labs
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b10::2]:/home/a796598/.ssh/authorized_keys"
+
+
+
+SUBSUBRED 2001:470:736b:b11::/64
+--------------------------------
+OROUTERB1:-- HECHO OKOKO
+    - cp /etc/hostname.vlan1110 /etc/hostname.vlan1111
+    - vi /etc/hostname.vlan1111
+        vlan 1111 vlandev vio0 up
+        inet6 alias 2001:470:736b:b11::1 64 -soii -temporary
+
+IPA1:
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0
+        DEVICE=eth0
+        TYPE=Ethernet
+        ONBOOT=yes
+        IPV6INIT="no"
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0.1111
+        DEVICE=eth0.1111
+        BOOTPROTO=static
+        ONBOOT=yes
+        VLAN=yes
+        IPV6INIT=yes
+        IPV6ADDR="2001:470:736b:b11::2/64"
+        IPV6_DEFAULTGW="2001:470:736b:b11::1"
+
+    - Permitimos entrar mediante ssh desde los labs
+    ssh-keygen -R 2001:470:736b:b11::2
+
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::2]:/home/a796598"
+    ssh-copy-id -i ~/.ssh/id_rsa.pub a796598@2001:470:736b:b11::2
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+IPA2:
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0
+        DEVICE=eth0
+        TYPE=Ethernet
+        BOOTPROTO=none
+        ONBOOT=yes
+        IPV6INIT="no"
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0.1111
+        DEVICE=eth0.1111
+        BOOTPROTO=static
+        ONBOOT=yes
+        VLAN=yes
+        IPV6INIT=yes
+        IPV6ADDR="2001:470:736b:b11::3/64"
+        IPV6_DEFAULTGW="2001:470:736b:b11::1"
+    - Permitimos entrar mediante ssh desde los labs
+    ssh-keygen -R 2001:470:736b:b11::3
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::3]:/home/a796598/.ssh/authorized_keys"
+    ssh-copy-id -i ~/.ssh/id_rsa.pub a796598@2001:470:736b:b11::3
+
+NFS:
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0
+        DEVICE=eth0
+        TYPE=Ethernet
+        ONBOOT=yes
+        IPV6INIT="no"
+    - vi /etc/sysconfig/network-scripts/ifcfg-eth0.1111
+        DEVICE=eth0.1111
+        BOOTPROTO=static
+        ONBOOT=yes
+        VLAN=yes
+        IPV6INIT=yes
+        IPV6ADDR="2001:470:736b:b11::4/64"
+        IPV6_DEFAULTGW="2001:470:736b:b11::1"
+    - Permitimos entrar mediante ssh desde los labs
+        ssh-keygen -R 2001:470:736b:b11::4
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::4]:/home/a796598/.ssh/authorized_keys"
+        ssh-copy-id -i ~/.ssh/id_rsa.pub a796598@2001:470:736b:b11::4
+
+
+
+SUBSUBRED 2001:470:736b:b12::/64
+--------------------------------
+OROUTERB1: -- HECHO OKOKO
+    - cp /etc/hostname.vlan1110 /etc/hostname.vlan1112
+    - vi /etc/hostname.vlan1112
+        vlan 1112 vlandev vio0 up
+        inet6 alias 2001:470:736b:b12::1 64 -soii -temporary
+
+CLIENTE1:
+    - Configuración de la interfaz padre: vi /etc/sysconfig/network-scripts/ifcfg-eth0
+    DEVICE=eth0
+    TYPE=Ethernet
+    ONBOOT=yes
+    IPV6INIT="no"
+
+    - Configuracion vlan: vi /etc/sysconfig/network-scripts/ifcfg-eth0.1112
+    DEVICE=eth0.1112
+    BOOTPROTO=none
+    ONBOOT=yes
+    VLAN=yes
+    IPV6INIT=yes
+    IPV6_AUTOCONF=yes
+
+    systemctl restart network
+
+    - Activar demonio slaac para permitir la autoconnfiguración
+        rcctl enable slaacd - EN openBSD
+        systemctl enable slaacd ?¿? -- CREO QUE NO HACE FALTA
+    Para que esto funcione editar uno de ls routers, por ejemplo el orouterB1, para que envie la información de prefijo por la tarjeta vlan1112:
+        vi /etc/rad.conf -> interface vlan1112
+
+    Direccion dinámica:
+        2001:470:736b:b12:5054:ff:fe0b:1202
+        ssh-copy-id -i ~/.ssh/id_rsa.pub a796598@2001:470:736b:b12:5054:ff:fe0b:1202
+
+
+
+CLIENTE2:
+- Antes que nada:
+    passwd a796598
+    vi /etc/sysctl.conf
+- Configuración de la interfaz padre: vi /etc/sysconfig/network-scripts/ifcfg-eth0
+    DEVICE=eth0
+    TYPE=Ethernet
+    ONBOOT=yes
+    IPV6INIT="no"
+
+    - Configuracion vlan: vi /etc/sysconfig/network-scripts/ifcfg-eth0.1112
+    DEVICE=eth0.1112
+    BOOTPROTO=none
+    ONBOOT=yes
+    VLAN=yes
+    IPV6INIT=yes
+    IPV6_AUTOCONF=yes
+
+    systemctl restart network
+
+    Direccion dinámica:
+        2001:470:736b:b12:5054:ff:fe0b:1203
+        ssh-copy-id -i ~/.ssh/id_rsa.pub a796598@2001:470:736b:b12:5054:ff:fe0b:1203
+
+SERVICIO IPA CONFIGURACIÓN
+----------------------------
+1. Añadir en el DNS1 el gluerecord para ipa1.1.b.ff.es.eu.org:
+    ipa1.1.b.ff.es.eu.org. IN AAAA 2001:470:736b:b11::2 ; gluerecord para definir otra zona
+1.1. Indicar en las máquinas freeIPA que su dominio es ese, cambiando su nombre
+etc/hostname: ipa1.1.b.ff.es.eu.org
+/etc/hosts: 2001:470:736b:b11::2 ipa1.1.b.ff.es.eu.org
+
+2. sudo yum update
+3. sudo yum install ipa-server bind bind-dyndb-ldap ipa-server-dns
+4. Crear la isntancia del servidor: SUBI LA MEMORIA A 4GB
+    sudo ipa-server-install --domain-level 0
+    PARA DESINSTALAR: ipa-server-install --uninstall
+5.El servidor debe estar limpio antes de configurarlo para FreeIPA con respecto a
+Kerberos, DNS
+
+    5.1 Comprobar puertos
+        netstat -tulpn | grep LISTEN
+    5.2 Configurar la red de forma estática
+7.Comprobar que los servicios estan encendidoss
+    sudo ipactl status
+Para reiniciarlos hacer:
+    sudo ipactl restart
+8. Comprobamos que el admin puede pedir un ticket de kerberos, este ticket nos permitirá utilizar las herramientas ipa.
+    kinit admin
+Con "ipa user-find" puedes ver el usuario creado.
+Con el comando "klist" puedo ver el ticket que acabo de adquirir
+
+Hacemos un backup del certificado que se encuentra en /root/cacert.p12,
+requerido para la creación de réplicas:
+sudo cp /root/cacert.p12 /root/cacert.p12.bak.20230330
+
+AÑADIR LAS ZONAS DNS
+
+El LDAP (Light Directory Access Protocol) va a ser donde se cree la BD.
+En nuestro caso se usa el 389 Directory Server (Redhat Directory Server).
+El explicado en clase es el openLDAP, similar al nuestro.
+
+Para ver que zonas tengo creadas:
+    ipa dnszone-find
+Ver entradas de zona inversa y directa:
+    ipa dnsrecord-find 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa.
+    ipa dnsrecord-find 1.b.ff.es.eu.org.
+
+Para añadir una zona:
+    ipa dnszone-add newserver.example.com
+    ipa dnszone-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa.
+
+Para borrarla:
+    ipa dnszone-del server.example.com
+    ipa dnszone-del 1.1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa.
+
+
+Permite transferir una zona:
+    ipa dnszone-mod --allow-transfer="192.0.2.1;198.51.100.1;203.0.113.1" example.com
+
+
+Y añadir la resolucion directa de nombres de las máquinas de esa subred:
+Ejemplo:  Crear el record www.example.com con IP address 2001:db8::1231:5675.
+ipa dnsrecord-add example.com www --aaaa-rec 2001:db8::1231:5675
+
+DIRECTO AÑADIDAS:
+ipa dnsrecord-add 1.b.ff.es.eu.org. ipa2 --aaaa-rec 2001:470:736b:b11::3
+ipa dnsrecord-add 1.b.ff.es.eu.org. nfs1 --aaaa-rec 2001:470:736b:b11::4
+ipa dnsrecord-add 1.b.ff.es.eu.org. router2 --aaaa-rec 2001:470:736b:b11::1
+
+
+Añadir los nombres inversos, PTR:
+ipa dnsrecord-add 0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa. 1.1.1.0.0.0.0.0.0.0.0.0.0.0.0 --ptr-rec server2.example.com.
+
+INVERSO AÑADIDAS:
+ipa dnsrecord-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1 --ptr-rec ipa2.1.b.ff.es.eu.org.
+ipa dnsrecord-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1 --ptr-rec nfs1.1.b.ff.es.eu.org.
+ipa dnsrecord-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1 --ptr-rec router2.1.b.ff.es.eu.org.
+
+
+CREACIÓN DE LA RÉPLICA(IPA2)
+Esto se ejecuta en ipa1:
+sudo ipa-replica-prepare ipa2.1.b.ff.es.eu.org --ip-address 2001:470:736b:b11::3
+
+En ipa2:(se ha cambiado el ficharo /etc/hostname y /etc/hosts, ademas se ha puesto como cliente del unbound para poder instalarlo)
+1. IPA2: Instalacion paquete ipa-server
+    yum install ipa-server
+2. IPA1: scp /var/lib/ipa/replica-info-ipa2.1.b.ff.es.eu.org.gpg root@[2001:470:736b:b11::3]:/var/lib/ipa/
+3. IPA2: ipa-replica-install /var/lib/ipa/replica-info-ipa2.1.b.ff.es.eu.org.gpg
+4. UNa vez instalado comprobar que las zonas se han replicado bien con el dns find
+5. InSTALAR DNS en ipa2
+    yum install ipa-server-dns
+    ipa-dns-install
+
+/// PARA AÑADIR UNO NUEVO SE AÑADE EN EL MASTER Y SE HACE INSTANTANEO
+Se añade a las zonas DNS de ipa1 que falten, al ponerse en el ipa1 se pasan directamente a la réplica. EN este caso hay que añadir oBcliente1 y oBcliente2.
+
+Directos:
+ipa dnsrecord-add 1.b.ff.es.eu.org. cliente1 --aaaa-rec 2001:470:736b:b12:5054:ff:fe0b:1202
+ipa dnsrecord-add 1.b.ff.es.eu.org. cliente2 --aaaa-rec 2001:470:736b:b12:5054:ff:fe0b:1203
+
+Inversos:
+ipa dnsrecord-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 2.0.2.1.b.0.e.f.f.f.0.0.4.5.0.5.2 --ptr-rec cliente1.1.b.ff.es.eu.org.
+ipa dnsrecord-add 1.b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa. 3.0.2.1.b.0.e.f.f.f.0.0.4.5.0.5.2 --ptr-rec cliente2.1.b.ff.es.eu.org.
+
+
+CREAR UN USUARIO IPA EN LA MÁQUINA IPA1:
+----------------------------------------
+    ipa config-mod –defaultshell=/bin/bash //Configuración del shell por defecto
+    --- Esto su es necesario se puede hacer asi:
+        ipa user-mod loreto --shell=/bin/bash
+    ipa user-add // Te crea un usuario, pero pero, con CONTRASEÑA?????
+
+Este usuario debería crearse también en la réplica (si esta estuviera configurada correctamente).
+    ipa user-find //busca todos los usuarios del sistema
+
+
+INSTALACIÓN CLIENTES IPA
+--------------------------
+Primero se han editado los ficheros:
+    - /etc/hostname
+        cliente1.1.b.ff.es.eu.org
+        cliente2.1.b.ff.es.eu.org
+
+    - /etc/hosts
+        2001:470:736b:b12:5054:ff:fe0b:1202 cliente1.1.b.ff.es.eu.org cliente1
+        2001:470:736b:b12:5054:ff:fe0b:1203 cliente2.1.b.ff.es.eu.org cliente2
+
+    - /etc/resolv.conf
+        nameserver 2001:470:736b:b20::2
+
+
+Después de esto, en las máquinas de los clientes procedemos a la instalación de los clientes IPA, para ello ejecutamos:
+    sudo yum install -y ipa-client
+    sudo ipa-client-install --enable-dns-updates
+        -- En la isntalación indicar: name domain 1.b.ff.es.eu.org y ipa1.1.b.ff.es.eu.org
+Comprobación: se supone que muestra los datos del usuario adminperoo ns
+    getent passwd loreto@1.B.FF.ES.EU.ORG
+        -> loreto:*:234800001:234800001:Loreto Matinero:/home/loreto:/bin/bash
+
+
+SERVIDOR NFS KERBERIZADO
+------------------------
+En la máquina nfs1:
+    - /etc/hostname, para definir el nombre de la maquina
+    nfs1.1.b.ff.es.eu.org
+    - /etc/hosts, este no se si hace falta
+    2001:470:736b:b11::4 nfs1.1.b.ff.es.eu.org nfs1
+    -/etc/resolv.conf
+    nameserver 2001:470:736b:b11::2 -- CAMBIAR EN LOS CLIENTES TMBB, con esto encuentra el servidor DNS
+
+Instalamos los paquetes necesarios, el servidor NFS, es un ipa cliente
+    yum -y install nfs-utils ipa-client
+INiciar el servicio nfs
+    systemctl enable nfs-server.service
+	systemctl start nfs-server.service
+A pesar de ser un servidor NFS, es un ipa-client
+    ipa-client-install --enable-dns-updates
+
+COnfiguración servidor NFS compatible con kerberos:
+    -Obtención de un ticket de kerberos:
+    kinit admin
+    -Creamos la entrada del servicio nfs
+        ipa service-add nfs/nfs1.1.b.ff.es.eu.org
+    -Recupera un keytab de servicio NFS para el servidor NFS
+        ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/nfs1.1.b.ff.es.eu.org -k /etc/krb5.keytab
+    -Comprobar que se ha configurado bien con su keytab
+        ipa service-show nfs/nfs1.1.b.ff.es.eu.org
+    -Para configurar ajustes del NFS, este comando activa el NFS seguro y establece el parámetro Domain en el archivo /etc/idmapd.conf al dominio DNS de IdM
+        ipa-client-automount
+    -Editar el archivo /etc/exports y añada recursos compartidos con la configuración de seguridad Kerberos krb5p:
+    /export  *(rw,sec=krb5:krb5i:krb5p)
+    /home  *(rw,sec=krb5:krb5i:krb5p)
+    -Reiniciar y habilitar servidor nfs
+    systemctl restart nfs-server
+    systemctl enable nfs-server
+
+Configuración de clientes NFS compatibles con kerberos
+    Para los dos clientes instalar el paquete nfs
+        yum install nfs-utils
+    Obtener ticket de kerberos
+        kinit admin
+    Para configurar los ajustes de NFS
+        ipa-client-automount
+    Editar /etc/fstab
+        nfs1.1.b.ff.es.eu.org:/export  /mnt   nfs4  sec=krb5p,rw
+        nfs1.1.b.ff.es.eu.org:/home    /home  nfs4  sec=krb5p,rw
+
+SEGUNDA PRUEBA nfs1
+-------------------
+
+SERVER IPA1:
+
+Agregar el servicio NFS con el nombre "nfs/nfs1.1.b.ff.es.eu.org" al sistema, lo cual permite a los clientes acceder a recursos compartidos de archivos a través de NFS utilizando la identidad y autenticación proporcionadas por FreeIPA.
+    ipa service-add nfs/nfs1.1.b.ff.es.eu.org
+
+Esto establecerá una relación de confianza entre FreeIPA y el servicio NFS en el dominio "cliente1.1.b.ff.es.eu.org", lo que permitirá a los clientes acceder a los recursos compartidos de archivos a través de NFS utilizando las credenciales de identidad y autenticación gestionadas por FreeIPA.
+    ipa service-add nfs/cliente1.1.b.ff.es.eu.org
+    ipa service-add nfs/cliente2.1.b.ff.es.eu.org
+
+
+Añadimos el autohome map. El automontaje es una función que permite montar automáticamente sistemas de archivos remotos en un directorio local cuando se accede a él, en lugar de tener que montar manualmente los sistemas de archivos remotos.
+    ipa automountmap-add default auto.home
+
+Añadir el auto.home map al auto.master
+    ipa automountkey-add default --key "/home" --info auto.home auto.master
+
+Finally add the key to the auto.home map CAMBIAR ESTOOOOOOOOOOOOOOOOOOOOOOO
+    ipa automountkey-add default --key "*" --info "-fstype=nfs4,rw,sec=krb5,soft,rsize=8192,wsize=8192 nfs1.1.b.ff.es.eu.org:/exports/home/&" auto.home
+
+SERVER NFS:
+
+Creamos a kerberos keytab para el NFS server
+    kinit admin
+    ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/nfs1.1.b.ff.es.eu.org -k /etc/krb5.keytab
+
+Decirle al nfs que use nfsv4 ?¿
+    perl -npe 's/#SECURE_NFS="yes"/SECURE_NFS="yes"/g' -i /etc/sysconfig/nfs
+
+Create your NFS share and start the NFS server
+    mkdir /exports/home
+    echo "/exports/home  *(rw,sec=sys:krb5:krb5i:krb5p)" >> /etc/exports
+    service nfs start
+    chkconfig nfs on
+
+CLIENTE1:
+
+    ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/cliente1.1.b.ff.es.eu.org -k /etc/krb5.keytab
+    ipa-client-automount --location=default
+
+
+CLIENTE2:
+
+    ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/cliente2.1.b.ff.es.eu.org -k /etc/krb5.keytab
+    ipa-client-automount --location=default
+
+
+
+
+
+CONFIGURACIÓN NTP CON CRHONY EN LOS CENTOS
+------------------------------------------
+Si no esta isntalado:
+    yum install chrony
+
+vi /etc/chrony.conf >> server 2001:470:736b:b20::2
+systemctl start chronyd
+systemctl enable chronyd
+
+
+PRUEBAS
+-------
+dig -6 AAAA ipa1.1.b.ff.es.eu.org
+dig -6 @2001:470:736b:b11::3 AAAA nfs1.1.b.ff.es.eu.org
+dig -6 @2001:470:736b:b11::3 -x 2001:0470:736b:b11:0000:0000:0000:0004
+
+dig -6 -x 2001:0470:736b:b11::2
+
+
+
