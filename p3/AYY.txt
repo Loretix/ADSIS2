@@ -1,0 +1,42 @@
+ 
+IPA1:
+    - vi /etc/hostname.vio0
+        -inet6
+        up
+    - vi /etc/hostname.vlan1111
+        vlan 1111 vlandev vio0 up
+        inet6 alias 2001:470:736b:b11::2 64 -soii -temporary
+    - /etc/mygate:
+        2001:470:736b:b11::1
+    - vi /etc/myname
+        ipa1
+    - Permitimos entrar mediante ssh desde los labs
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::2]:/home/a796598/.ssh/authorized_keys"
+
+IPA2:
+    - vi /etc/hostname.vio0
+        -inet6
+        up
+    - vi /etc/hostname.vlan1111
+        vlan 1111 vlandev vio0 up
+        inet6 alias 2001:470:736b:b11::3 64 -soii -temporary
+    - /etc/mygate:
+        2001:470:736b:b11::1
+     - vi /etc/myname
+        ipa2
+    - Permitimos entrar mediante ssh desde los labs
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::3]:/home/a796598/.ssh/authorized_keys"
+
+NFS:
+    - vi /etc/hostname.vio0
+        -inet6
+        up
+    - vi /etc/hostname.vlan1111
+        vlan 1111 vlandev vio0 up
+        inet6 alias 2001:470:736b:b11::4 64 -soii -temporary
+    - /etc/mygate:
+        2001:470:736b:b11::1
+     - vi /etc/myname
+        nfs1
+    - Permitimos entrar mediante ssh desde los labs
+    scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:b11::4]:/home/a796598/.ssh/authorized_keys"
