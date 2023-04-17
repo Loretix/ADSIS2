@@ -469,33 +469,7 @@ A pesar de ser un servidor NFS, es un ipa-client
     ipa-client-install --enable-dns-updates
 
 COnfiguración servidor NFS compatible con kerberos:
-    -Obtención de un ticket de kerberos:
-    kinit admin
-    -Creamos la entrada del servicio nfs
-        ipa service-add nfs/nfs1.1.b.ff.es.eu.org
-    -Recupera un keytab de servicio NFS para el servidor NFS
-        ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/nfs1.1.b.ff.es.eu.org -k /etc/krb5.keytab
-    -Comprobar que se ha configurado bien con su keytab
-        ipa service-show nfs/nfs1.1.b.ff.es.eu.org
-    -Para configurar ajustes del NFS, este comando activa el NFS seguro y establece el parámetro Domain en el archivo /etc/idmapd.conf al dominio DNS de IdM
-        ipa-client-automount
-    -Editar el archivo /etc/exports y añada recursos compartidos con la configuración de seguridad Kerberos krb5p:
-    /export  *(rw,sec=krb5:krb5i:krb5p)
-    /home  *(rw,sec=krb5:krb5i:krb5p)
-    -Reiniciar y habilitar servidor nfs
-    systemctl restart nfs-server
-    systemctl enable nfs-server
 
-Configuración de clientes NFS compatibles con kerberos
-    Para los dos clientes instalar el paquete nfs
-        yum install nfs-utils
-    Obtener ticket de kerberos
-        kinit admin
-    Para configurar los ajustes de NFS
-        ipa-client-automount
-    Editar /etc/fstab
-        nfs1.1.b.ff.es.eu.org:/export  /mnt   nfs4  sec=krb5p,rw
-        nfs1.1.b.ff.es.eu.org:/home    /home  nfs4  sec=krb5p,rw
 
 SEGUNDA PRUEBA nfs1
 -------------------
@@ -533,11 +507,21 @@ Create your NFS share and start the NFS server
     echo "/exports/home  *(rw,sec=sys:krb5:krb5i:krb5p)" >> /etc/exports
     service nfs start
     chkconfig nfs on
+    service nfs restart
+	exportfs -rav
 
 CLIENTE1:
 
     ipa-getkeytab -s ipa1.1.b.ff.es.eu.org -p nfs/cliente1.1.b.ff.es.eu.org -k /etc/krb5.keytab
+    ipa service-show nfs/cliente1.1.b.ff.es.eu.org
+
     ipa-client-automount --location=default
+    ipa-client-automount --location=default --server=ipa1.1.b.ff.es.eu.org
+    ipa-client-automount --uninstall
+
+
+    nslookup ipa1.1.b.ff.es.eu.org
+
 
 
 CLIENTE2:
@@ -562,10 +546,16 @@ systemctl enable chronyd
 PRUEBAS
 -------
 dig -6 AAAA ipa1.1.b.ff.es.eu.org
+dig -6 AAAA cliente1.1.b.ff.es.eu.org
+
 dig -6 @2001:470:736b:b11::3 AAAA nfs1.1.b.ff.es.eu.org
 dig -6 @2001:470:736b:b11::3 -x 2001:0470:736b:b11:0000:0000:0000:0004
 
 dig -6 -x 2001:0470:736b:b11::2
+dig -6 -x 2001:0470:736b:b11::4
+
+dig -6 -x 2001:470:736b:b12:5054:ff:fe0b:1202
+
 
 
 
