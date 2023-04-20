@@ -545,16 +545,47 @@ systemctl enable chronyd
 
 PRUEBAS
 -------
+dig -6 -x 2001:0470:736b:b20::2
+dig -6 AAAA orouterB.b.ff.es.eu.org
+
+DIRECTAS:
 dig -6 AAAA ipa1.1.b.ff.es.eu.org
+dig -6 AAAA ipa2.1.b.ff.es.eu.org
+dig -6 AAAA nfs1.1.b.ff.es.eu.org
 dig -6 AAAA cliente1.1.b.ff.es.eu.org
+dig -6 AAAA cliente2.1.b.ff.es.eu.org
+dig -6 AAAA router2.1.b.ff.es.eu.org
+
+INVERSAS:
+dig -6 -x 2001:0470:736b:b11::1
+dig -6 -x 2001:0470:736b:b11::2
+dig -6 -x 2001:0470:736b:b11::3
+dig -6 -x 2001:0470:736b:b11::4
+dig -6 -x 2001:470:736b:b12:5054:ff:fe0b:1202
+dig -6 -x 2001:470:736b:b12:5054:ff:fe0b:1203
+
 
 dig -6 @2001:470:736b:b11::3 AAAA nfs1.1.b.ff.es.eu.org
+dig -6 @2001:470:736b:b11::3 AAAA cliente1.1.b.ff.es.eu.org
+
 dig -6 @2001:470:736b:b11::3 -x 2001:0470:736b:b11:0000:0000:0000:0004
 
-dig -6 -x 2001:0470:736b:b11::2
-dig -6 -x 2001:0470:736b:b11::4
+AÑADIR NUEVO RECORD
+------------------
+ipa dnsrecord-add 1.b.ff.es.eu.org. prueba --aaaa-rec 2001:470:736b:b11::b
 
-dig -6 -x 2001:470:736b:b12:5054:ff:fe0b:1202
+CREAR NUEVO USUARIO
+-------------------
+Crear usuario sin contraseña:
+    ipa user-add
+Añadir contraseña a usuario <nombre>
+    ipa user-mod prueba --password
+Comprobar creación del usuario:
+    ipa user-find
+Crear directorio en nfs1:
+    mkdir /exports/home/<nombre>
+Dar permisos a ese usuario:
+    chown <nombre>:<nombre> /exports/home/<nombre>
 
 
 
