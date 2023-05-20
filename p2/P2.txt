@@ -50,12 +50,12 @@ scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::4]:/home/a79
 ----------------------------------
 Configurar, como clientes DNS (resolv.conf), todas las máquinas. (servidor en oBFF2)
     En el fichero resolv.conf hay que indicar los servidores de nombres, en orden de búsqueda, a los que se les solicita información del DNS. Siempre con dirección IP. (EN OROUTERB, MV3, MV4)
-        - Añadir en resolv.conf: nameserver 2001:470:736b:bff:5054:ff:fe0b:ff02
+        - Añadir en resolv.conf: nameserver 2001:470:736b:bff::2
         - Excepto en la mv2 que es el servidor, ahi se pone la ip de bucle local ::1 para que las peticiones se realice a nuestro servidor caché
 
 De forma similar configurar todas las máquinas como clietes ntp. (servidor en oBFF2)
     En este caso para los clientes modificar el fichero /etc/ntpd.conf (EN LAS MV3 Y MV4)
-        - Para los clietes añadir: server 2001:470:736b:bff:5054:ff:fe0b:ff02
+        - Para los clietes añadir: server 2001:470:736b:bff::2
 
     **El router externo (orouterB?) no va a servirse del servidor ntp de la mv2, se servirá de un servidor ntp, por ello igual no hay que modificar el /etc/ntp.conf en el router.
 
@@ -109,7 +109,6 @@ stub-zone:
 stub-zone:
         name:"b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa"
         stub-addr:2001:470:736b:bff::3
-
 
 # en directorio /var/unbound/etc/unbound.conf de OpenBSD
 
@@ -212,8 +211,8 @@ CONFIGURACIÓN FICHEROS DE ZONAS
 MASTER (MV3)
 ------
 Directorio de zonas:
-    - var/nsd/zones/ff.es.eu.org.directo
-    - var/nsd/zones/ff.es.eu.org.inverso
+    - /var/nsd/zones/ff.es.eu.org.directo
+    - /var/nsd/zones/ff.es.eu.org.inverso
 
 Esto de origen es la base de datos distribuido que contiene la
 información de resolución de nombres DNS.
@@ -287,6 +286,10 @@ PARA ACTUALIZAR EL NSD:
 	COMPROBAR CON NSD-CHECKZONE ( que el fichero esta bien)
 	HACER NSD-CONTROL RELOAD ZONE (pues pa actualizar la zona)
 
+doas nsd-control reload b.ff.es.eu.org.
+doas nsd-control reload b.0.b.6.3.7.0.7.4.0.1.0.0.2.ip6.arpa.
+
+
 COMPROBACIONES
 --------------------
 
@@ -296,19 +299,30 @@ dig -6 AAAA oBFF2.b.ff.es.eu.org
 dig -6 AAAA oBFF3.b.ff.es.eu.org
 dig -6 AAAA oBFF4.b.ff.es.eu.org
 dig -6 AAAA otro_servidor.b.ff.es.eu.org
+dig -6 AAAA esa.b.ff.es.eu.org
+dig -6 AAAA router2.1.b.ff.es.eu.org
+
+
+dig -6 @2001:470:736b:b20::4 AAAA esa.b.ff.es.eu.org
 
 Comprobación inverso:
-dig -6 -x 2001:0470:736b:0bff:0000:0000:0000:0001
-dig -6 -x 2001:0470:736b:0bff:0000:0000:0000:0002
-dig -6 -x 2001:0470:736b:0bff:0000:0000:0000:0003
-dig -6 -x 2001:0470:736b:0bff:0000:0000:0000:0004
-dig -6 -x 2001:0470:736b:0bff:0000:0000:0000:000f
+dig -6 -x 2001:0470:736b:b20::1
+dig -6 -x 2001:0470:736b:b20::2
+dig -6 -x 2001:0470:736b:b20::3
+dig -6 -x 2001:0470:736b:b20::4
+dig -6 -x 2001:0470:736b:b20::f
+dig -6 -x 2001:0470:736b:b20::e
+
+dig -6 @2001:470:736b:bff::4 -x 2001:0470:736b:b20:0000:0000:0000:000e
 
 Comprobación ssh:
 ssh a796598@orouterB.b.ff.es.eu.org
 ssh a796598@oBFF2.b.ff.es.eu.org
 ssh a796598@oBFF3.b.ff.es.eu.org
 ssh a796598@oBFF4.b.ff.es.eu.org
+
+Comprobacion ntpd:
+ntpctl -s all
 
 
 

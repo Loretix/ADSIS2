@@ -202,7 +202,11 @@ Permitir entrar al router sin contraseña a la MV interior.
 
 
 
+scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::2]:/home/a796598/.ssh"
+scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::3]:/home/a796598/.ssh"
+scp -6 "/home/a796598/.ssh/id_rsa.pub" "a796598@[2001:470:736b:bff::4]:/home/a796598/.ssh"
 
+cat /home/a796598/.ssh/id_rsa.pub >> /home/a796598/.ssh/authorized_keys
 
-
+cat /home/a796598/.ssh/authorized_keys
 
