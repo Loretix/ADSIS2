@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wordpress
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: wordpress
+    tier: mysql
+  clusterIP: None
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app: wordpress
+spec:
+  storageClassName: rook-ceph-block
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wordpress
+    tier: mysql
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: mysql
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: changeme
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
+
+
+#Obtenemos el nombre del pod direct-mount
+kubectl get pods --all-namespaces -o wide
+#Entramos en el pod direct-mount
+kubectl -n rook-ceph get pod -l app=rook-direct-mount; kubectl -n rook-ceph exec -it rook-direct-mount-68ccfbd4f5-k9njp bash
+#Mapeamos
+rbd map replicapool/test
+#Buscamos el nombre del dispositivo
+lsblk | grep rbd
+#
+mkfs.ext4 -m0 /dev/rbd0
+#Cremos directorio /tmp/prueba y montamos el dispositivo en ese directorio
+mkdir /tmp/prueba
+mount /dev/rbd0 /tmp/prueba
+#Creamos un fichero dentro para comprobar la persistencia
+echo 'hola' >> /tmp/prueba/prueba.txt
+#EN primer lugar se puede probar a montar y montar el dispositivo y comprobar que se mantiene el fichero creado
+umount /tmp/prueba
+mount /dev/rbd0 /tmp/prueba
+#Después podemos comprobar que se mantiene tras apagar uno de los nodos
